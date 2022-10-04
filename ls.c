@@ -18,9 +18,27 @@ usage()
     printf("%s\n","Usage");
 }
 
+bool
+isFile(char *path){
+    struct stat buffer;
+    stat(path, &buffer);
+    return S_ISREG(buffer.st_mode);
+}
+
+bool
+isDirectory(char *path){
+    struct stat buffer;
+    stat(path, &buffer);
+    return S_ISDIR(buffer.st_mode);
+}
+
 void
 ls(char* path)
 {
+    if(isFile(path)) {
+        printf("\t%s\n",path);
+        return;
+    }
     DIR *dp;
     struct dirent *dirp;
     char buf[PATH_MAX];
@@ -32,7 +50,7 @@ ls(char* path)
 	}
 
 	while ((dirp = readdir(dp)) != NULL){
-        printf("%s\n", dirp->d_name);
+        printf("\t%s\n", dirp->d_name);
     }
 
 	closedir(dp);
@@ -65,6 +83,20 @@ parseArgs(int argc, char *argv[])
 }
 
 int
+sortHelp(const void *a, const void *b)
+{
+    char *val_a = *(char **)a;
+    char *val_b = *(char **)b;
+
+    if((isFile(val_a) && isFile(val_b)) || (isDirectory(val_a) && isDirectory(val_b))){
+        return 0;
+    } else if(isFile(val_a)){
+        return -1;
+    }
+    return 1;
+}
+
+int
 main(int argc, char *argv[])
 {
     int ch;
@@ -79,9 +111,15 @@ main(int argc, char *argv[])
     }
 
     Struct nargv = parseArgs(argc, argv);
-    for(int i=0;i<nargv.length;i++){
-        printf("%s\n",nargv.argv[i]);
+    qsort(nargv.argv, nargv.length, sizeof(nargv.argv[0]), sortHelp);
+    if(nargv.length > 1) {
+        for(int i=1;i<nargv.length;i++){
+            printf("\n%s\n",nargv.argv[i]);
+            ls(nargv.argv[i]);
+        }
+    } else {
+        printf("\n%s\n", "Current Directory (.)");
+        ls(".");
     }
-    // ls(".");
     return(0);
 }
