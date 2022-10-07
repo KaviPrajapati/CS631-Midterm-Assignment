@@ -5,4 +5,6 @@
 #include <dirent.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <fts.h>
