@@ -30,32 +30,22 @@ usage()
     printf("%s\n","Usage");
 }
 
-bool
-isFile(char *path){
-    struct stat buffer;
-    stat(path, &buffer);
-    return S_ISREG(buffer.st_mode);
-}
-
-bool
-isDirectory(char *path){
-    struct stat buffer;
-    stat(path, &buffer);
-    return S_ISDIR(buffer.st_mode);
-}
-
 int
 sortHelpArgs(const void *a, const void *b)
 {
     char *val_a = *(char **)a;
     char *val_b = *(char **)b;
 
-    if((isFile(val_a) && isFile(val_b)) || (isDirectory(val_a) && isDirectory(val_b))){
+    struct stat buffer_a, buffer_b;
+    stat(val_a, &buffer_a);
+    stat(val_b, &buffer_b);
+
+    if((S_ISDIR(buffer_a.st_mode) && S_ISDIR(buffer_b.st_mode)) || (!S_ISDIR(buffer_a.st_mode) && !S_ISDIR(buffer_b.st_mode))){
         return 0;
-    } else if(isFile(val_a)){
-        return -1;
+    } else if(S_ISDIR(buffer_a.st_mode)){
+        return 1;
     }
-    return 1;
+    return -1;
 }
 
 int
@@ -114,9 +104,50 @@ suffix(FTSENT *file){
     return '\0';
 }
 
+char*
+getPermissionString(mode_t mode, int read, int write, int execute, char *type){
+    char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+    if((mode & read) != 0){
+        strcat(buf,"r");
+    } else {
+        strcat(buf,"-");
+    }
+    if((mode & write) != 0){
+        strcat(buf,"w");
+    } else {
+        strcat(buf,"-");
+    }
+    if((mode & execute) != 0){
+        if(strcmp(type,"owner")==0 && (mode & S_ISUID) != 0){
+            strcat(buf,"s");
+        } else if(strcmp(type,"group")==0 && (mode & S_ISGID) != 0){
+            strcat(buf,"s");
+        } else if(strcmp(type,"other")==0 && (mode & S_ISVTX) != 0) {
+            strcat(buf,"t");
+        } else{
+            strcat(buf,"x");
+        }
+    } else {
+        if(strcmp(type,"owner")==0 && (mode & S_ISUID) != 0){
+            strcat(buf,"S");
+        } else if(strcmp(type,"group")==0 && (mode & S_ISGID) != 0){
+            strcat(buf,"S");
+        } else if(strcmp(type,"other")==0 && (mode & S_ISVTX) != 0) {
+            strcat(buf,"T");
+        } else{
+            strcat(buf,"-");
+        }
+    }
+    return buf;
+}
+
 void 
 printFileDescription(FTSENT *file, bool dir){
     printf("\t\t%-10s%-10hu\n","File mode:",file->fts_statp->st_mode);
+    printf("\t\t\t%-10s%-10s\n","Owner permission:",getPermissionString(file->fts_statp->st_mode, S_IRUSR, S_IWUSR, S_IXUSR,"owner"));
+    printf("\t\t\t%-10s%-10s\n","Group permission:",getPermissionString(file->fts_statp->st_mode, S_IRGRP, S_IWGRP, S_IXGRP,"group"));
+    printf("\t\t\t%-10s%-10s\n","Other permission:",getPermissionString(file->fts_statp->st_mode, S_IROTH, S_IWOTH, S_IXOTH,"other"));
+    
     printf("\t\t%-10s%-10hu\n","Number of links:",file->fts_nlink);
 
     struct passwd *owner_name = getpwuid(file->fts_statp->st_uid);
@@ -125,8 +156,17 @@ printFileDescription(FTSENT *file, bool dir){
     printf("\t\t%-10s%-10s\n","Owner name:",owner_name->pw_name);
     printf("\t\t%-10s%-10s\n","Group name:",grp_name->gr_name);
 
-    printf("\t\t%-10s%-10lld\n","Number of bytes in the file:",file->fts_statp->st_size);
-    printf("\t\t%-10s%-10s\n","Path name:",file->fts_path);
+    if(S_ISBLK(file->fts_statp->st_mode) || S_ISCHR(file->fts_statp->st_mode)) {
+        printf("\t\t%-10s%-10lld%-10d\n","Number of bytes in the file [With device number]:",file->fts_statp->st_size, file->fts_statp->st_dev);
+    } else {
+         printf("\t\t%-10s%-10lld\n","Number of bytes in the file:",file->fts_statp->st_size);
+    }
+
+    if(S_ISLNK(file->fts_statp->st_mode)) {
+        printf("\t\t%-10s%-10s%-2s%-5s\n","Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
+    } else {
+        printf("\t\t%-10s%-10s\n","Path name:",file->fts_path);
+    }
     
     struct tm *time = localtime(&file->fts_statp->st_mtimespec.tv_sec);
     printf("\t\t%-10s%-10d\n","File was last modified (Month):",time->tm_mon);
