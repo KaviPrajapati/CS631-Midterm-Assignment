@@ -15,6 +15,7 @@ bool t_FLAG = false;
 bool u_FLAG = false;
 bool r_FLAG = false;
 bool c_FLAG = false;
+bool l_FLAG = false;
 
 struct arguments {
     int length;
@@ -114,16 +115,41 @@ suffix(FTSENT *file){
 }
 
 void 
+printFileDescription(FTSENT *file, bool dir){
+    printf("\t\t%-10s%-10hu\n","File mode:",file->fts_statp->st_mode);
+    printf("\t\t%-10s%-10hu\n","Number of links:",file->fts_nlink);
+
+    struct passwd *owner_name = getpwuid(file->fts_statp->st_uid);
+    struct group *grp_name = getgrgid(file->fts_statp->st_gid);
+
+    printf("\t\t%-10s%-10s\n","Owner name:",owner_name->pw_name);
+    printf("\t\t%-10s%-10s\n","Group name:",grp_name->gr_name);
+
+    printf("\t\t%-10s%-10lld\n","Number of bytes in the file:",file->fts_statp->st_size);
+    printf("\t\t%-10s%-10s\n","Path name:",file->fts_path);
+    
+    struct tm *time = localtime(&file->fts_statp->st_mtimespec.tv_sec);
+    printf("\t\t%-10s%-10d\n","File was last modified (Month):",time->tm_mon);
+    printf("\t\t%-10s%-10d\n","File was last modified (Day):",time->tm_mday);
+    printf("\t\t%-10s%-10d%-10d\n","File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
+
+    if(dir) printf("\t\t%-10s%-10lld\n","Block allocated to directory:",file->fts_statp->st_blocks);
+}
+
+void 
 printFile(FTSENT *file){
     if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
-    if(S_ISDIR(file->fts_statp->st_mode))
+    if(S_ISDIR(file->fts_statp->st_mode)){
         printf("\t%-10s%c\n",file->fts_name, suffix(file));
+        if(l_FLAG) printFileDescription(file, true);
+    }
     else {
         if(i_FLAG){
             printf("\t%-10s%c\t\t inode = %-12llu\n",file->fts_name,suffix(file), file->fts_statp->st_ino);
         } else {
             printf("\t%-10s%c\n",file->fts_name,suffix(file));
         }
+        if(l_FLAG) printFileDescription(file, false);
     }
 }
 
@@ -185,6 +211,9 @@ main(int argc, char *argv[])
                 break;
             case 'c':
                 c_FLAG = true;
+                break;
+            case 'l':
+                l_FLAG = true;
                 break;
             default:
                 usage();
