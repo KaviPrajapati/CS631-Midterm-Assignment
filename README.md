@@ -18,3 +18,10 @@ Not able to check socket and whiteout file
 Github Link :
 
 https://github.com/KaviPrajapati/CS631-Midterm-Assignment
+
+
+
+-d
+-q
+-s
+-w

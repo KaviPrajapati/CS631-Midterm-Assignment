@@ -2,7 +2,6 @@
 
 /* List of all available options for the ls command */
 #define OPTSTRING "AacdFfhiklnqRrSstuw"
-#define PATH_MAX 2048
 #define MAX_BUF 512
 #define MAX_NUMBER_OF_FILES 1024
 
@@ -16,6 +15,15 @@ bool u_FLAG = false;
 bool r_FLAG = false;
 bool c_FLAG = false;
 bool l_FLAG = false;
+bool f_FLAG = false;
+bool h_FLAG = false;
+bool k_FLAG = false;
+bool n_FLAG = false;
+bool q_FLAG = false;
+bool R_FLAG = false;
+bool s_FLAG = false;
+bool w_FLAG = false;
+bool d_FLAG = false;
 
 struct arguments {
     int length;
@@ -105,91 +113,96 @@ suffix(FTSENT *file){
 }
 
 char*
-getPermissionString(mode_t mode, int read, int write, int execute, char *type){
+getSpace(FTSENT *file){
     char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
-    if((mode & read) != 0){
-        strcat(buf,"r");
-    } else {
-        strcat(buf,"-");
+    for(int i=0;i<file->fts_level;i++){
+        strcat(buf,"\t");
     }
-    if((mode & write) != 0){
-        strcat(buf,"w");
-    } else {
-        strcat(buf,"-");
-    }
-    if((mode & execute) != 0){
-        if(strcmp(type,"owner")==0 && (mode & S_ISUID) != 0){
-            strcat(buf,"s");
-        } else if(strcmp(type,"group")==0 && (mode & S_ISGID) != 0){
-            strcat(buf,"s");
-        } else if(strcmp(type,"other")==0 && (mode & S_ISVTX) != 0) {
-            strcat(buf,"t");
-        } else{
-            strcat(buf,"x");
+    return buf;
+}
+
+char*
+convertHumanRedable(double size){
+    char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+    int index = 0;
+    char *suffix[] = {"B", "KB", "MB", "GB", "TB", "PB"};
+    if(h_FLAG) {
+        while(size > 1024){
+            size /= 1024;
+            index++;
         }
+        sprintf(buf, "%.*f", index, size);
+        strcat(buf,suffix[index]);
+    } else if(k_FLAG) {
+        sprintf(buf, "%.*f", 2, size/1024);
+        strcat(buf,suffix[1]);
     } else {
-        if(strcmp(type,"owner")==0 && (mode & S_ISUID) != 0){
-            strcat(buf,"S");
-        } else if(strcmp(type,"group")==0 && (mode & S_ISGID) != 0){
-            strcat(buf,"S");
-        } else if(strcmp(type,"other")==0 && (mode & S_ISVTX) != 0) {
-            strcat(buf,"T");
-        } else{
-            strcat(buf,"-");
-        }
+        sprintf(buf, "%f", size);
+        strcat(buf,"B");
     }
     return buf;
 }
 
 void 
 printFileDescription(FTSENT *file, bool dir){
-    printf("\t\t%-10s%-10hu\n","File mode:",file->fts_statp->st_mode);
-    printf("\t\t\t%-10s%-10s\n","Owner permission:",getPermissionString(file->fts_statp->st_mode, S_IRUSR, S_IWUSR, S_IXUSR,"owner"));
-    printf("\t\t\t%-10s%-10s\n","Group permission:",getPermissionString(file->fts_statp->st_mode, S_IRGRP, S_IWGRP, S_IXGRP,"group"));
-    printf("\t\t\t%-10s%-10s\n","Other permission:",getPermissionString(file->fts_statp->st_mode, S_IROTH, S_IWOTH, S_IXOTH,"other"));
-    
-    printf("\t\t%-10s%-10hu\n","Number of links:",file->fts_nlink);
+
+    char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+    strmode(file->fts_statp->st_mode, buf);
+    char* spaces = getSpace(file);
+
+    printf("%s%-10s%-10hu\n",spaces,"File mode:",file->fts_statp->st_mode);
+    printf("%s%-10s%-10s\n",spaces,"File permission:",buf);
+
+    printf("%s%-10s%-10hu\n",spaces,"Number of links:",file->fts_nlink);
 
     struct passwd *owner_name = getpwuid(file->fts_statp->st_uid);
     struct group *grp_name = getgrgid(file->fts_statp->st_gid);
 
-    printf("\t\t%-10s%-10s\n","Owner name:",owner_name->pw_name);
-    printf("\t\t%-10s%-10s\n","Group name:",grp_name->gr_name);
+    if(l_FLAG){
+        printf("%s%-10s%-10s\n",spaces,"Owner name:", owner_name->pw_name);
+        printf("%s%-10s%-10s\n",spaces,"Group name:", grp_name->gr_name);
+    } else {
+        printf("%s%-10s%-10d\n",spaces,"Owner ID:", file->fts_statp->st_uid);
+        printf("%s%-10s%-10d\n",spaces,"Group ID:", file->fts_statp->st_gid);
+    }
 
     if(S_ISBLK(file->fts_statp->st_mode) || S_ISCHR(file->fts_statp->st_mode)) {
-        printf("\t\t%-10s%-10lld%-10d\n","Number of bytes in the file [With device number]:",file->fts_statp->st_size, file->fts_statp->st_dev);
+        printf("%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number]:",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
     } else {
-         printf("\t\t%-10s%-10lld\n","Number of bytes in the file:",file->fts_statp->st_size);
+        printf("%s%-10s%-10s\n",spaces,"Number of bytes in the file:",convertHumanRedable(file->fts_statp->st_size));
     }
 
     if(S_ISLNK(file->fts_statp->st_mode)) {
-        printf("\t\t%-10s%-10s%-2s%-5s\n","Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
+        printf("%s%-10s%-10s%-2s%-5s\n",spaces,"Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
     } else {
-        printf("\t\t%-10s%-10s\n","Path name:",file->fts_path);
+        printf("%s%-10s%-10s\n",spaces,"Path name:",file->fts_path);
     }
     
-    struct tm *time = localtime(&file->fts_statp->st_mtimespec.tv_sec);
-    printf("\t\t%-10s%-10d\n","File was last modified (Month):",time->tm_mon);
-    printf("\t\t%-10s%-10d\n","File was last modified (Day):",time->tm_mday);
-    printf("\t\t%-10s%-10d%-10d\n","File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
+    struct tm *time = localtime( u_FLAG ? &file->fts_statp->st_atimespec.tv_sec : &file->fts_statp->st_mtimespec.tv_sec);
+    printf("%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Month):" : "File was last modified (Month):",time->tm_mon);
+    printf("%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day):" : "File was last modified (Day):",time->tm_mday);
+    printf("%s%-10s%-10d%-10d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes):" : "File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
 
-    if(dir) printf("\t\t%-10s%-10lld\n","Block allocated to directory:",file->fts_statp->st_blocks);
+    if(dir) printf("%s%-10s%-10lld\n",spaces,"Block allocated to directory:",file->fts_statp->st_blocks);
 }
 
 void 
 printFile(FTSENT *file){
-    if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
+    if(file->fts_level > 1 && !R_FLAG) return;
     if(S_ISDIR(file->fts_statp->st_mode)){
-        printf("\t%-10s%c\n",file->fts_name, suffix(file));
-        if(l_FLAG) printFileDescription(file, true);
+        if(file->fts_info == FTS_DP) return;
+        if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
+        if(file->fts_info == FTS_DOT && A_FLAG) return;
+        printf("%s%-10s%c\n",getSpace(file), file->fts_name, suffix(file));
+        if(l_FLAG || n_FLAG) printFileDescription(file, true);
     }
     else {
         if(i_FLAG){
-            printf("\t%-10s%c\t\t inode = %-12llu\n",file->fts_name,suffix(file), file->fts_statp->st_ino);
+            printf("%s%-10s%c\t\t inode = %-12llu\n",getSpace(file), file->fts_name,suffix(file), file->fts_statp->st_ino);
         } else {
-            printf("\t%-10s%c\n",file->fts_name,suffix(file));
+            printf("%s%-10s%c\n",getSpace(file), file->fts_name,suffix(file));
         }
-        if(l_FLAG) printFileDescription(file, false);
+        if(l_FLAG || n_FLAG) printFileDescription(file, false);
     }
 }
 
@@ -203,7 +216,7 @@ parseArgs(int argc, char *argv[])
             int j = i+1;
             while(j < argc){
                 char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
-                strcpy(buf,argv[j]);
+                stpcpy(buf,argv[j]);
                 argv[j-1] = buf;
                 j++;
             }
@@ -244,16 +257,61 @@ main(int argc, char *argv[])
                 t_FLAG = true;
                 break;
             case 'u':
+                if(c_FLAG){
+                    c_FLAG = false;
+                }
                 u_FLAG = true;
                 break;
             case 'r':
                 r_FLAG = true;
                 break;
             case 'c':
+                if(u_FLAG){
+                    u_FLAG = false;
+                }
                 c_FLAG = true;
                 break;
             case 'l':
+                if(n_FLAG){
+                    n_FLAG = false;
+                }
                 l_FLAG = true;
+                break;
+            case 'f':
+                f_FLAG = true;
+                break;
+            case 'h':
+                h_FLAG = true;
+                break;
+            case 'k':
+                k_FLAG = true;
+                break;
+            case 'n':
+                if(f_FLAG){
+                    f_FLAG = false;
+                }
+                n_FLAG = true;
+                break;
+            case 'q':
+                if(w_FLAG){
+                    w_FLAG = false;
+                }
+                q_FLAG = true;
+                break;
+            case 'R':
+                R_FLAG = true;
+                break;
+            case 's':
+                s_FLAG = true;
+                break;
+            case 'w':
+                if(q_FLAG){
+                    q_FLAG = false;
+                }
+                w_FLAG = true;
+                break;
+            case 'd':
+                d_FLAG = true;
                 break;
             default:
                 usage();
