@@ -38,68 +38,6 @@ usage()
     printf("%s\n","Usage");
 }
 
-int
-sortHelpArgs(const void *a, const void *b)
-{
-    char *val_a = *(char **)a;
-    char *val_b = *(char **)b;
-
-    struct stat buffer_a, buffer_b;
-    stat(val_a, &buffer_a);
-    stat(val_b, &buffer_b);
-
-    if((S_ISDIR(buffer_a.st_mode) && S_ISDIR(buffer_b.st_mode)) || (!S_ISDIR(buffer_a.st_mode) && !S_ISDIR(buffer_b.st_mode))){
-        return 0;
-    } else if(S_ISDIR(buffer_a.st_mode)){
-        return 1;
-    }
-    return -1;
-}
-
-int
-sortHelpFTS(const FTSENT **a, const FTSENT **b)
-{
-    int val_a = (*a)->fts_statp->st_mode;
-    int val_b = (*b)->fts_statp->st_mode;
-
-    if((S_ISDIR(val_a) && S_ISDIR(val_b)) || (!S_ISDIR(val_a) && !S_ISDIR(val_b))){
-        return 0;
-    } else if(S_ISDIR(val_a)){
-        return 1;
-    }
-    return -1;
-}
-
-int
-sortBySize(const FTSENT **a, const FTSENT **b)
-{
-    long val_a = (*a)->fts_statp->st_size;
-    long val_b = (*b)->fts_statp->st_size;
-
-    if(r_FLAG){
-        return val_a - val_b;
-    } else {
-        return val_b - val_a;
-    }
-}
-
-int
-sortByModifiedTime(const FTSENT **a, const FTSENT **b)
-{
-    struct timespec val_a = c_FLAG ? (*a)->fts_statp->st_ctimespec : u_FLAG ? (*a)->fts_statp->st_atimespec : (*a)->fts_statp->st_mtimespec;
-    struct timespec val_b = c_FLAG ? (*b)->fts_statp->st_ctimespec : u_FLAG ? (*b)->fts_statp->st_atimespec : (*b)->fts_statp->st_mtimespec;
-
-    if(r_FLAG){
-        if (val_a.tv_nsec > val_b.tv_nsec) return 1;
-        if (val_a.tv_nsec < val_b.tv_nsec) return -1;
-        return (strcmp((*b)->fts_name, (*a)->fts_name));
-    } else {
-        if (val_a.tv_nsec < val_b.tv_nsec) return 1;
-        if (val_a.tv_nsec > val_b.tv_nsec) return -1;
-        return (strcmp((*a)->fts_name, (*b)->fts_name));
-    }
-}
-
 char
 suffix(FTSENT *file){
     if(!F_FLAG) return '\0';
@@ -150,40 +88,40 @@ printFileDescription(FTSENT *file, bool dir){
     strmode(file->fts_statp->st_mode, buf);
     char* spaces = getSpace(file);
 
-    printf("%s%-10s%-10hu\n",spaces,"File mode:",file->fts_statp->st_mode);
-    printf("%s%-10s%-10s\n",spaces,"File permission:",buf);
+    printf("\t%s%-10s%-10hu\n",spaces,"File mode:",file->fts_statp->st_mode);
+    printf("\t%s%-10s%-10s\n",spaces,"File permission:",buf);
 
-    printf("%s%-10s%-10hu\n",spaces,"Number of links:",file->fts_nlink);
+    printf("\t%s%-10s%-10hu\n",spaces,"Number of links:",file->fts_nlink);
 
     struct passwd *owner_name = getpwuid(file->fts_statp->st_uid);
     struct group *grp_name = getgrgid(file->fts_statp->st_gid);
 
     if(l_FLAG){
-        printf("%s%-10s%-10s\n",spaces,"Owner name:", owner_name->pw_name);
-        printf("%s%-10s%-10s\n",spaces,"Group name:", grp_name->gr_name);
+        printf("\t%s%-10s%-10s\n",spaces,"Owner name:", owner_name->pw_name);
+        printf("\t%s%-10s%-10s\n",spaces,"Group name:", grp_name->gr_name);
     } else {
-        printf("%s%-10s%-10d\n",spaces,"Owner ID:", file->fts_statp->st_uid);
-        printf("%s%-10s%-10d\n",spaces,"Group ID:", file->fts_statp->st_gid);
+        printf("\t%s%-10s%-10d\n",spaces,"Owner ID:", file->fts_statp->st_uid);
+        printf("\t%s%-10s%-10d\n",spaces,"Group ID:", file->fts_statp->st_gid);
     }
 
     if(S_ISBLK(file->fts_statp->st_mode) || S_ISCHR(file->fts_statp->st_mode)) {
-        printf("%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number]:",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
+        printf("\t%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number]:",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
     } else {
-        printf("%s%-10s%-10s\n",spaces,"Number of bytes in the file:",convertHumanRedable(file->fts_statp->st_size));
+        printf("\t%s%-10s%-10s\n",spaces,"Number of bytes in the file:",convertHumanRedable(file->fts_statp->st_size));
     }
 
     if(S_ISLNK(file->fts_statp->st_mode)) {
-        printf("%s%-10s%-10s%-2s%-5s\n",spaces,"Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
+        printf("\t%s%-10s%-10s%-2s%-5s\n",spaces,"Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
     } else {
-        printf("%s%-10s%-10s\n",spaces,"Path name:",file->fts_path);
+        printf("\t%s%-10s%-10s\n",spaces,"Path name:",file->fts_path);
     }
     
     struct tm *time = localtime( u_FLAG ? &file->fts_statp->st_atimespec.tv_sec : &file->fts_statp->st_mtimespec.tv_sec);
-    printf("%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Month):" : "File was last modified (Month):",time->tm_mon);
-    printf("%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day):" : "File was last modified (Day):",time->tm_mday);
-    printf("%s%-10s%-10d%-10d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes):" : "File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
+    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Month):" : "File was last modified (Month):",time->tm_mon);
+    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day):" : "File was last modified (Day):",time->tm_mday);
+    printf("\t%s%-10s%-10d%-10d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes):" : "File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
 
-    if(dir) printf("%s%-10s%-10lld\n",spaces,"Block allocated to directory:",file->fts_statp->st_blocks);
+    if(dir) printf("\t%s%-10s%-10lld\n",spaces,"Block allocated to directory:",file->fts_statp->st_blocks);
 }
 
 void 

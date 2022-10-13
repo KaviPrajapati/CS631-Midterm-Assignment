@@ -1,4 +1,3 @@
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,3 +10,5 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include "options.h"
+#include "cmp.h"
