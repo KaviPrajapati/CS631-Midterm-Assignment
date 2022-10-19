@@ -10,5 +10,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <ctype.h>
+#include <limits.h>
+#include <math.h>
 #include "options.h"
 #include "cmp.h"

@@ -21,7 +21,6 @@ https://github.com/KaviPrajapati/CS631-Midterm-Assignment
 
 
 
--d
 -q
 -s
 -w

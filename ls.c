@@ -24,7 +24,8 @@ bool R_FLAG = false;
 bool s_FLAG = false;
 bool w_FLAG = false;
 bool d_FLAG = false;
-
+float total_size;
+long block_size = 1;
 struct arguments {
     int length;
     char **argv;
@@ -126,17 +127,27 @@ printFileDescription(FTSENT *file, bool dir){
 
 void 
 printFile(FTSENT *file){
+    if(d_FLAG && file->fts_level > 0) return;
     if(file->fts_level > 1 && !R_FLAG) return;
+    if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
+
     if(S_ISDIR(file->fts_statp->st_mode)){
         if(file->fts_info == FTS_DP) return;
-        if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
         if(file->fts_info == FTS_DOT && A_FLAG) return;
-        printf("%s%-10s%c\n",getSpace(file), file->fts_name, suffix(file));
+        if(s_FLAG){
+            total_size += (file->fts_statp->st_blocks / block_size);
+            printf("%s%-10lld%-10s%c\n",getSpace(file),file->fts_statp->st_blocks, file->fts_name, suffix(file));
+        } else {
+            printf("%s%-10s%c\n",getSpace(file), file->fts_name, suffix(file));
+        }
         if(l_FLAG || n_FLAG) printFileDescription(file, true);
     }
     else {
         if(i_FLAG){
             printf("%s%-10s%c\t\t inode = %-12llu\n",getSpace(file), file->fts_name,suffix(file), file->fts_statp->st_ino);
+        } else if(s_FLAG){
+            total_size += (file->fts_statp->st_blocks / block_size);
+            printf("%s%-10lld%-10s%c\n",getSpace(file), file->fts_statp->st_blocks ,file->fts_name,suffix(file));
         } else {
             printf("%s%-10s%c\n",getSpace(file), file->fts_name,suffix(file));
         }
@@ -168,6 +179,33 @@ parseArgs(int argc, char *argv[])
     s.length = argc;
     s.argv = argv;
     return s;
+}
+
+void
+traversArgs(char **argv, int argc, int start)
+{
+    for(int i=start;i<argc;i++){
+        char *currentPath[2] = { argv[i] };
+        FTS *fts;
+
+        fts = fts_open(currentPath, FTS_PHYSICAL, &sortHelpFTS);
+        if(S_FLAG){
+            fts = fts_open(currentPath, FTS_PHYSICAL, &sortBySize);
+        }
+        if(t_FLAG){
+            fts = fts_open(currentPath, FTS_PHYSICAL, &sortByModifiedTime);
+        }
+        
+        FTSENT *file_system;
+        total_size = 0.0;
+        while((file_system = fts_read(fts)) != NULL){
+            printFile(file_system);
+        }
+        if(s_FLAG){
+            printf("total %ld\n\n", (long)ceil(total_size));
+        }
+        fts_close(fts);
+    }
 }
 
 int
@@ -256,27 +294,21 @@ main(int argc, char *argv[])
         }
     }
 
+	if(getenv("BLOCKSIZE")!=NULL) {
+        char *ptr;
+        block_size = strtol(getenv("BLOCKSIZE"), &ptr, 10);
+        if(block_size > 512)
+            block_size = block_size / 512;
+    }
+
     Struct nargv = parseArgs(argc, argv);
     qsort(nargv.argv, nargv.length, sizeof(nargv.argv[0]), sortHelpArgs);
-
-    for(int i=1;i<nargv.length;i++){
-        
-        char *currentPath[2] = { nargv.argv[i] };
-        FTS *fts;
-        if(S_FLAG){
-            fts = fts_open(currentPath, FTS_PHYSICAL, &sortBySize);
-        } else if(t_FLAG){
-            fts = fts_open(currentPath, FTS_PHYSICAL, &sortByModifiedTime);
-        } else {
-            fts = fts_open(currentPath, FTS_PHYSICAL, &sortHelpFTS);
-        }
-        FTSENT *file_system;
-
-        while((file_system = fts_read(fts)) != NULL){
-            printFile(file_system);
-        }
-        fts_close(fts);
-
+    if(nargv.length > 1){
+        traversArgs(nargv.argv, nargv.length, 1);
+    } else {
+        char *currentDir = ".";
+        char **list = { &currentDir };
+        traversArgs(list,1,0);
     }
     return(0);
 }
