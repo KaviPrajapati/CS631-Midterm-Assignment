@@ -29,7 +29,7 @@ sortHelpFTS(const FTSENT **a, const FTSENT **b)
     int val_b = (*b)->fts_statp->st_mode;
 
     if((S_ISDIR(val_a) && S_ISDIR(val_b)) || (!S_ISDIR(val_a) && !S_ISDIR(val_b))){
-        return 0;
+        return r_FLAG ? (strcmp((*b)->fts_name, (*a)->fts_name)) : (strcmp((*a)->fts_name, (*b)->fts_name));
     } else if(S_ISDIR(val_a)){
         return 1;
     }

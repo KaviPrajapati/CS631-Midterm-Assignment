@@ -257,9 +257,15 @@ main(int argc, char *argv[])
                 f_FLAG = true;
                 break;
             case 'h':
+                if(k_FLAG){
+                    k_FLAG = false;
+                }
                 h_FLAG = true;
                 break;
             case 'k':
+                if(h_FLAG){
+                    h_FLAG = false;
+                }
                 k_FLAG = true;
                 break;
             case 'n':
