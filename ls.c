@@ -468,8 +468,7 @@ main(int argc, char *argv[])
         char *ptr;
         block_size = MAX(block_size, strtol(getenv("BLOCKSIZE"), &ptr, 10));
     }
-    if(block_size >= 512)
-        block_size = block_size / 512;
+    if(block_size >= 512) block_size = block_size / 512;
 
 	if(getenv("TZ")!=NULL) {
         char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
