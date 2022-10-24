@@ -106,7 +106,7 @@ char*
 getFileName(char *name)
 {
     for(int i=0;i< (int)strlen(name);i++){
-        name[i] = isprint(name[i]) ? name[i] : '?';
+        name[i] = isprint((unsigned int)name[i]) ? name[i] : '?';
     }
     return name;
 }
@@ -142,7 +142,7 @@ printFileDescription(FTSENT *file, bool dir)
     }
 
     if(S_ISBLK(file->fts_statp->st_mode) || S_ISCHR(file->fts_statp->st_mode)) {
-        printf("\t%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number] : ",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
+        printf("\t%s%-10s%-10s%-10ld\n",spaces,"Number of bytes in the file [With device number] : ",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
     } else {
         printf("\t%s%-10s%-10s\n",spaces,"Number of bytes in the file : ",convertHumanRedable(file->fts_statp->st_size));
     }
@@ -157,7 +157,7 @@ printFileDescription(FTSENT *file, bool dir)
     printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day) : " : "File was last modified (Day) : ",time->tm_mday);
     printf("\t%s%-10s%d%s%d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes) : " : "File was last modified (Hours:Minutes) : ",time->tm_hour,":",time->tm_min);
 
-    if(dir) printf("\t%s%-10s%-10lld\n",spaces,"Block allocated to directory : ",file->fts_statp->st_blocks);
+    if(dir) printf("\t%s%-10s%-10ld\n",spaces,"Block allocated to directory : ",file->fts_statp->st_blocks);
 }
 
 void 
@@ -190,7 +190,7 @@ printFile(FTSENT *file)
     else {
         if(a_FLAG && strlen(file->fts_name) > 0 && file->fts_name[0]=='.') return;
         if(i_FLAG){
-            printf("%s%-10s%c\t\t inode = %-12llu\n",getSpace(file), file_name,suffix(file), file->fts_statp->st_ino);
+            printf("%s%-10s%c\t\t inode = %-12lu\n",getSpace(file), file_name,suffix(file), file->fts_statp->st_ino);
         } else if(s_FLAG){
             total_size += (file->fts_statp->st_blocks / block_size);
             printf("%s%-10ld%-10s%c\n",getSpace(file), (long)(ceil)(file->fts_statp->st_blocks / block_size) ,file_name,suffix(file));

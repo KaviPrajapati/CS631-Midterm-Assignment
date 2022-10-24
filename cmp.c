@@ -1,9 +1,5 @@
 #include "cmp.h"
 
-bool u_FLAG;
-bool c_FLAG;
-bool r_FLAG;
-
 int
 sortHelpArgs(const void *a, const void *b)
 {
