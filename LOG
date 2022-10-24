@@ -1,0 +1,95 @@
+commit 310adbc2fa11e191c9a95671be4bc338f85423f2
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 24 14:13:01 2022 -0400
+
+    Updated if condition
+
+commit 13fa9da555a602e1377bd94abdb0d92a468408c9
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 24 13:59:35 2022 -0400
+
+    Added comments
+
+commit f9df2ac74c311c8870bc7461045785c9301c8957
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 24 11:29:06 2022 -0400
+
+    Change based on netBSD env
+
+commit ef1e8509375c7c2fa2c56df7306715cf38a76967
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Sun Oct 23 21:47:03 2022 -0400
+
+    Added error handling
+
+commit 7d47e7d913d040c35fd218a2c7326e8105a61013
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Sun Oct 23 20:22:46 2022 -0400
+
+    Added -q flag
+
+commit 4a562faad3d4698370bfc727c51a910533843e9c
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Wed Oct 19 17:42:24 2022 -0400
+
+    Added reverse functionality -r flag
+
+commit 4fa2e3ea026df38dfd9bdf9fb92d37d7ba37eb84
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Wed Oct 19 17:31:13 2022 -0400
+
+    Added -d and -s flags
+
+commit ead1998d8a2ba6ea2c4166d9772110b6a059b6eb
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Thu Oct 13 18:27:38 2022 -0400
+
+    Seperated code in multiple .c files
+
+commit e805eb251eb021054e1387c8133ce04f54702fc0
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Thu Oct 13 17:58:27 2022 -0400
+
+    Added remaining flags
+
+commit b55c65abbe4c2272bad6b3665cf8b0204e841d47
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 10 15:44:29 2022 -0400
+
+    Updated README
+
+commit aaa10dae6f076e8a20cdfaf82c96878475546d56
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 10 15:37:48 2022 -0400
+
+    Added more options to -l flag
+
+commit 2af7064e67534412218d734f6f816f775d8ffa0c
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 10 00:20:21 2022 -0400
+
+    Added -l flag
+
+commit 374d099fc2998f2f3ee0363aa46af77588283b02
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Thu Oct 6 23:46:16 2022 -0400
+
+    Updateed using fts library
+
+commit 64c7fd4974d2e233cdec874ed32bb4ca71a430b7
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Tue Oct 4 16:21:35 2022 -0400
+
+    sort args based of file/directory and implemented simple ls
+
+commit 6fb3f2237133eefa81204bc4b1fdeaeaa5fe0f35
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Tue Oct 4 15:42:43 2022 -0400
+
+    Added parsing options and arguments
+
+commit 832b061b354841d8af32b2bad489d9bb1d656e6e
+Author: KaviPrajapati <kaviprajapati1997@gmail.com>
+Date:   Mon Oct 3 15:23:55 2022 -0400
+
+    Added readme
