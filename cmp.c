@@ -11,8 +11,13 @@ sortHelpArgs(const void *a, const void *b)
     char *val_b = *(char **)b;
 
     struct stat buffer_a, buffer_b;
-    stat(val_a, &buffer_a);
-    stat(val_b, &buffer_b);
+    int res_a = stat(val_a, &buffer_a);
+    int res_b = stat(val_b, &buffer_b);
+
+    if(res_a != 0 || res_b != 0) {
+        (void)printf("Error while accessing stat : %s\n", strerror(errno));
+		exit(1);
+    }
 
     if((S_ISDIR(buffer_a.st_mode) && S_ISDIR(buffer_b.st_mode)) || (!S_ISDIR(buffer_a.st_mode) && !S_ISDIR(buffer_b.st_mode))){
         return 0;

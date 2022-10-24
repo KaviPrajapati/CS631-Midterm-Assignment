@@ -1,7 +1,3 @@
-#include <stdbool.h>
-#include <sys/stat.h>
-#include <fts.h>
-#include <string.h>
 #include "options.h"
 
 int

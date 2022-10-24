@@ -3,7 +3,6 @@
 /* List of all available options for the ls command */
 #define OPTSTRING "AacdFfhiklnqRrSstuw"
 #define MAX_BUF 512
-#define MAX_NUMBER_OF_FILES 1024
 #define MAX(X, Y) (((X) >= (Y)) ? (X) : (Y))
 
 bool A_FLAG = false;
@@ -43,7 +42,8 @@ usage()
 }
 
 char
-suffix(FTSENT *file){
+suffix(FTSENT *file)
+{
     if(!F_FLAG) return '\0';
     if(S_ISDIR(file->fts_statp->st_mode)) return '/';
     if(S_ISLNK(file->fts_statp->st_mode)) return '@';
@@ -58,8 +58,15 @@ suffix(FTSENT *file){
 }
 
 char*
-getSpace(FTSENT *file){
+getSpace(FTSENT *file)
+{
     char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+
+    if(buf == NULL){
+        (void)printf("Error while allocating buffer : %s\n", strerror(errno));
+		exit(1);
+    }
+
     for(int i=0;i<file->fts_level;i++){
         strcat(buf,"\t");
     }
@@ -67,8 +74,15 @@ getSpace(FTSENT *file){
 }
 
 char*
-convertHumanRedable(double size){
+convertHumanRedable(double size)
+{
     char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+
+    if(buf == NULL){
+        (void)printf("Error while allocating buffer : %s\n", strerror(errno));
+		exit(1);
+    }
+
     int index = 0;
     char *suffix[] = {"B", "KB", "MB", "GB", "TB", "PB"};
     if(h_FLAG) {
@@ -98,9 +112,16 @@ getFileName(char *name)
 }
 
 void 
-printFileDescription(FTSENT *file, bool dir){
+printFileDescription(FTSENT *file, bool dir)
+{
 
     char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+
+    if(buf == NULL){
+        (void)printf("Error while allocating buffer : %s\n", strerror(errno));
+		exit(1);
+    }
+
     strmode(file->fts_statp->st_mode, buf);
     char* spaces = getSpace(file);
 
@@ -140,7 +161,8 @@ printFileDescription(FTSENT *file, bool dir){
 }
 
 void 
-printFile(FTSENT *file){
+printFile(FTSENT *file)
+{
     
     if(d_FLAG && file->fts_level > 0) return;
     if(file->fts_level > 1 && !R_FLAG) return;
@@ -189,6 +211,12 @@ parseArgs(int argc, char *argv[])
             int j = i+1;
             while(j < argc){
                 char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+
+                if(buf == NULL){
+                    (void)printf("Error while allocating buffer : %s\n", strerror(errno));
+                    exit(1);
+                }
+
                 stpcpy(buf,argv[j]);
                 argv[j-1] = buf;
                 j++;
@@ -332,6 +360,10 @@ main(int argc, char *argv[])
 
 	if(getenv("TZ")!=NULL) {
         char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+        if(buf == NULL){
+            (void)printf("Error while allocating buffer : %s\n", strerror(errno));
+            exit(1);
+        }
 		strcpy(buf, getenv("TZ"));
 		setenv("TZ", buf, 1);
    		tzset();
