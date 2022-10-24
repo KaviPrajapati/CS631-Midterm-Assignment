@@ -4,6 +4,7 @@
 #define OPTSTRING "AacdFfhiklnqRrSstuw"
 #define MAX_BUF 512
 #define MAX_NUMBER_OF_FILES 1024
+#define MAX(X, Y) (((X) >= (Y)) ? (X) : (Y))
 
 bool A_FLAG = false;
 bool a_FLAG = false;
@@ -19,13 +20,15 @@ bool f_FLAG = false;
 bool h_FLAG = false;
 bool k_FLAG = false;
 bool n_FLAG = false;
-bool q_FLAG = false;
+bool q_FLAG = true;
 bool R_FLAG = false;
 bool s_FLAG = false;
 bool w_FLAG = false;
 bool d_FLAG = false;
+
+bool super_user = false;
 float total_size;
-long block_size = 1;
+long block_size = 512;
 struct arguments {
     int length;
     char **argv;
@@ -43,11 +46,14 @@ char
 suffix(FTSENT *file){
     if(!F_FLAG) return '\0';
     if(S_ISDIR(file->fts_statp->st_mode)) return '/';
-    if((file->fts_statp->st_mode & S_IFMT)==S_IXUSR) return '*';
     if(S_ISLNK(file->fts_statp->st_mode)) return '@';
-    if(S_ISWHT(file->fts_statp->st_mode)) return '%';
-    if(S_ISSOCK(file->fts_statp->st_mode)) return '=';
     if(S_ISFIFO(file->fts_statp->st_mode)) return '|';
+    if((file->fts_statp->st_mode & S_IXUSR) != 0) {
+        if((file->fts_statp->st_mode & S_ISUID) != 0) return '%';
+        return '*';
+    } else {
+        if((file->fts_statp->st_mode & S_ISUID) != 0) return '=';
+    }
     return '\0';
 }
 
@@ -82,6 +88,15 @@ convertHumanRedable(double size){
     return buf;
 }
 
+char*
+getFileName(char *name)
+{
+    for(int i=0;i< (int)strlen(name);i++){
+        name[i] = isprint(name[i]) ? name[i] : '?';
+    }
+    return name;
+}
+
 void 
 printFileDescription(FTSENT *file, bool dir){
 
@@ -89,67 +104,76 @@ printFileDescription(FTSENT *file, bool dir){
     strmode(file->fts_statp->st_mode, buf);
     char* spaces = getSpace(file);
 
-    printf("\t%s%-10s%-10hu\n",spaces,"File mode:",file->fts_statp->st_mode);
-    printf("\t%s%-10s%-10s\n",spaces,"File permission:",buf);
-
-    printf("\t%s%-10s%-10hu\n",spaces,"Number of links:",file->fts_nlink);
+    printf("\t%s%-10s%-10hu\n",spaces,"File mode : ",file->fts_statp->st_mode);
+    printf("\t%s%-10s%-10s\n",spaces,"File permission : ",buf);
+    printf("\t%s%-10s%-10hu\n",spaces,"Number of links : ",file->fts_nlink);
 
     struct passwd *owner_name = getpwuid(file->fts_statp->st_uid);
     struct group *grp_name = getgrgid(file->fts_statp->st_gid);
+    struct tm *time = localtime( u_FLAG ? &file->fts_statp->st_atimespec.tv_sec : &file->fts_statp->st_mtimespec.tv_sec);
 
     if(l_FLAG){
-        printf("\t%s%-10s%-10s\n",spaces,"Owner name:", owner_name->pw_name);
-        printf("\t%s%-10s%-10s\n",spaces,"Group name:", grp_name->gr_name);
+        printf("\t%s%-10s%-10s\n",spaces,"Owner name : ", owner_name->pw_name);
+        printf("\t%s%-10s%-10s\n",spaces,"Group name : ", grp_name->gr_name);
     } else {
-        printf("\t%s%-10s%-10d\n",spaces,"Owner ID:", file->fts_statp->st_uid);
-        printf("\t%s%-10s%-10d\n",spaces,"Group ID:", file->fts_statp->st_gid);
+        printf("\t%s%-10s%-10d\n",spaces,"Owner ID : ", file->fts_statp->st_uid);
+        printf("\t%s%-10s%-10d\n",spaces,"Group ID : ", file->fts_statp->st_gid);
     }
 
     if(S_ISBLK(file->fts_statp->st_mode) || S_ISCHR(file->fts_statp->st_mode)) {
-        printf("\t%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number]:",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
+        printf("\t%s%-10s%-10s%-10d\n",spaces,"Number of bytes in the file [With device number] : ",convertHumanRedable(file->fts_statp->st_size), file->fts_statp->st_dev);
     } else {
-        printf("\t%s%-10s%-10s\n",spaces,"Number of bytes in the file:",convertHumanRedable(file->fts_statp->st_size));
+        printf("\t%s%-10s%-10s\n",spaces,"Number of bytes in the file : ",convertHumanRedable(file->fts_statp->st_size));
     }
 
     if(S_ISLNK(file->fts_statp->st_mode)) {
-        printf("\t%s%-10s%-10s%-2s%-5s\n",spaces,"Path name:",file->fts_path,"->",(file->fts_link ? file->fts_link->fts_name : ""));
+        printf("\t%s%-10s%-10s%-2s%-5s\n",spaces,"Path name : ",getFileName(file->fts_path),"->",(file->fts_link ? file->fts_link->fts_name : ""));
     } else {
-        printf("\t%s%-10s%-10s\n",spaces,"Path name:",file->fts_path);
+        printf("\t%s%-10s%-10s\n",spaces,"Path name : ",getFileName(file->fts_path));
     }
     
-    struct tm *time = localtime( u_FLAG ? &file->fts_statp->st_atimespec.tv_sec : &file->fts_statp->st_mtimespec.tv_sec);
-    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Month):" : "File was last modified (Month):",time->tm_mon);
-    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day):" : "File was last modified (Day):",time->tm_mday);
-    printf("\t%s%-10s%-10d%-10d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes):" : "File was last modified (Hours:Minutes):",time->tm_hour,time->tm_min);
+    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Month) : " : "File was last modified (Month) : ",time->tm_mon);
+    printf("\t%s%-10s%-10d\n",spaces, u_FLAG ? "File was last accessed (Day) : " : "File was last modified (Day) : ",time->tm_mday);
+    printf("\t%s%-10s%d%s%d\n",spaces,u_FLAG ? "File was last accessed (Hours:Minutes) : " : "File was last modified (Hours:Minutes) : ",time->tm_hour,":",time->tm_min);
 
-    if(dir) printf("\t%s%-10s%-10lld\n",spaces,"Block allocated to directory:",file->fts_statp->st_blocks);
+    if(dir) printf("\t%s%-10s%-10lld\n",spaces,"Block allocated to directory : ",file->fts_statp->st_blocks);
 }
 
 void 
 printFile(FTSENT *file){
+    
     if(d_FLAG && file->fts_level > 0) return;
     if(file->fts_level > 1 && !R_FLAG) return;
-    if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
+    if((file->fts_info == FTS_DOT || (strlen(file->fts_name) > 0 && file->fts_name[0]=='.')) && A_FLAG) return;
+
+    if(file->fts_errno){
+        printf("ls %s: No such file or directory\n",file->fts_name);
+        return;
+    }
+
+    char* file_name = getFileName(file->fts_name);
 
     if(S_ISDIR(file->fts_statp->st_mode)){
         if(file->fts_info == FTS_DP) return;
-        if(file->fts_info == FTS_DOT && A_FLAG) return;
+        if(strlen(file->fts_name) > 0 && file->fts_name[0]=='.' && !a_FLAG) return;
+
         if(s_FLAG){
             total_size += (file->fts_statp->st_blocks / block_size);
-            printf("%s%-10lld%-10s%c\n",getSpace(file),file->fts_statp->st_blocks, file->fts_name, suffix(file));
+            printf("%s%-10ld%-10s%c\n",getSpace(file),(long)(ceil)(file->fts_statp->st_blocks / block_size), file_name, suffix(file));
         } else {
-            printf("%s%-10s%c\n",getSpace(file), file->fts_name, suffix(file));
+            printf("%s%-10s%c\n",getSpace(file), file_name, suffix(file));
         }
         if(l_FLAG || n_FLAG) printFileDescription(file, true);
     }
     else {
+        if(a_FLAG && strlen(file->fts_name) > 0 && file->fts_name[0]=='.') return;
         if(i_FLAG){
-            printf("%s%-10s%c\t\t inode = %-12llu\n",getSpace(file), file->fts_name,suffix(file), file->fts_statp->st_ino);
+            printf("%s%-10s%c\t\t inode = %-12llu\n",getSpace(file), file_name,suffix(file), file->fts_statp->st_ino);
         } else if(s_FLAG){
             total_size += (file->fts_statp->st_blocks / block_size);
-            printf("%s%-10lld%-10s%c\n",getSpace(file), file->fts_statp->st_blocks ,file->fts_name,suffix(file));
+            printf("%s%-10ld%-10s%c\n",getSpace(file), (long)(ceil)(file->fts_statp->st_blocks / block_size) ,file_name,suffix(file));
         } else {
-            printf("%s%-10s%c\n",getSpace(file), file->fts_name,suffix(file));
+            printf("%s%-10s%c\n",getSpace(file), file_name,suffix(file));
         }
         if(l_FLAG || n_FLAG) printFileDescription(file, false);
     }
@@ -269,8 +293,8 @@ main(int argc, char *argv[])
                 k_FLAG = true;
                 break;
             case 'n':
-                if(f_FLAG){
-                    f_FLAG = false;
+                if(l_FLAG){
+                    l_FLAG = false;
                 }
                 n_FLAG = true;
                 break;
@@ -299,12 +323,27 @@ main(int argc, char *argv[])
                 usage();
         }
     }
-
 	if(getenv("BLOCKSIZE")!=NULL) {
         char *ptr;
-        block_size = strtol(getenv("BLOCKSIZE"), &ptr, 10);
-        if(block_size > 512)
+        block_size = MAX(block_size, strtol(getenv("BLOCKSIZE"), &ptr, 10));
+        if(block_size >= 512)
             block_size = block_size / 512;
+    }
+
+	if(getenv("TZ")!=NULL) {
+        char* buf = (char *)malloc(sizeof(char)*MAX_BUF);
+		strcpy(buf, getenv("TZ"));
+		setenv("TZ", buf, 1);
+   		tzset();
+	}
+
+    super_user = (getuid()==0);
+
+    if(super_user){
+        A_FLAG = true;
+    }
+    if(d_FLAG){
+        a_FLAG = true;
     }
 
     Struct nargv = parseArgs(argc, argv);

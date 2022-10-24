@@ -19,8 +19,3 @@ Github Link :
 
 https://github.com/KaviPrajapati/CS631-Midterm-Assignment
 
-
-
--q
--s
--w
